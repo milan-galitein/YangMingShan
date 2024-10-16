@@ -527,7 +527,7 @@ static const CGFloat YMSPhotoFetchScaleResizingRatio = 0.75;
 {
     NSMutableArray *allAblums = [NSMutableArray array];
 
-    PHFetchResult *smartAlbums = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeAlbumRegular options:nil];
+    PHFetchResult *smartAlbums = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumUserLibrary options:nil];
 
     __block __weak void (^weakFetchAlbums)(PHFetchResult *collections);
     void (^fetchAlbums)(PHFetchResult *collections);
