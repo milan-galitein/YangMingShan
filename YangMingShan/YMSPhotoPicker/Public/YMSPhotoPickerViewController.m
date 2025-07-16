@@ -497,26 +497,37 @@ static const CGFloat YMSPhotoFetchScaleResizingRatio = 0.75;
     return (self.numberOfPhotoToSelect != 1);
 }
 
-- (void)refreshPhotoSelection
-{
+- (void)refreshPhotoSelection {
     PHFetchResult *fetchResult = self.currentCollectionItem[@"assets"];
-    NSUInteger selectionNumber = self.selectedPhotos.count;
+    NSMutableDictionary<PHAsset *, NSNumber *> *selectedAssetOrderMap = [NSMutableDictionary dictionaryWithCapacity:self.selectedPhotos.count];
+    for (NSUInteger j = 0; j < self.selectedPhotos.count; j++) {
+        PHAsset *selectedAsset = self.selectedPhotos[j];
+        selectedAssetOrderMap[selectedAsset] = @(j + 1);
+    }
 
-    for (int i=0; i<fetchResult.count; i++) {
-        PHAsset *asset = [fetchResult objectAtIndex:i];
-        if ([self.selectedPhotos containsObject:asset]) {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSMutableDictionary<NSIndexPath *, NSNumber *> *itemsToSelectAndOrder = [NSMutableDictionary dictionary];
 
-            // Display selection
-            [self.photoCollectionView selectItemAtIndexPath:[NSIndexPath indexPathForItem:i+1 inSection:0] animated:NO scrollPosition:UICollectionViewScrollPositionNone];
-            YMSPhotoCell *cell = (YMSPhotoCell *)[self.photoCollectionView cellForItemAtIndexPath:[NSIndexPath indexPathForItem:i+1 inSection:0]];
-            cell.selectionOrder = [self.selectedPhotos indexOfObject:asset]+1;
-
-            selectionNumber--;
-            if (selectionNumber == 0) {
-                break;
+        for (int i = 0; i < fetchResult.count; i++) {
+            PHAsset *asset = [fetchResult objectAtIndex:i];
+            NSNumber *selectionOrder = selectedAssetOrderMap[asset];
+            if (selectionOrder) {
+                NSIndexPath *indexPath = [NSIndexPath indexPathForItem:i + 1 inSection:0];
+                itemsToSelectAndOrder[indexPath] = selectionOrder;
             }
         }
-    }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            for (NSIndexPath *indexPath in itemsToSelectAndOrder.allKeys) {
+                [self.photoCollectionView selectItemAtIndexPath:indexPath animated:NO scrollPosition:UICollectionViewScrollPositionNone];
+
+                YMSPhotoCell *cell = (YMSPhotoCell *)[self.photoCollectionView cellForItemAtIndexPath:indexPath];
+                if (cell) {
+                    cell.selectionOrder = [itemsToSelectAndOrder[indexPath] integerValue];
+                }
+            }
+        });
+    });
 }
 
 - (BOOL)canAddPhoto
